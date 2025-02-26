@@ -33,7 +33,7 @@ export default function Home() {
                     <h2 className="text-xl sm:text-2xl font-semibold tracking-tight">Music videos for you</h2>
                     <Button size="sm" className="hidden sm:flex">Play all</Button>
                   </div>
-                  <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                  <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {new Array(10).fill(0).map((_, index) => (
                       <VideoCard
                         key={index}
