@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 import { Button } from "./ui/button";
 import { Slider } from "./ui/slider";
 import { motion } from "motion/react";
+import { Progress } from "./ui/progress";
 
 // Helper function to format time in MM:SS format
 const formatTime = (seconds: number): string => {
@@ -23,6 +24,7 @@ export function MobilePlayer() {
         seekByPercentage,
         setCurrentMusic,
         isLoading,
+        loadingProgress,
         currentMusic,
         isViewTransition
     } = useAudio();
@@ -64,6 +66,22 @@ export function MobilePlayer() {
                 {music?.snippet.channelTitle}
             </motion.h2>
 
+            {/* Loading progress indicator */}
+            {(isLoading || (loadingProgress > 0 && loadingProgress < 100)) && (
+                <div className="mt-4">
+                    <Progress
+                        value={loadingProgress}
+                        className="h-1"
+                        aria-label="Audio loading progress"
+                    />
+                    {isLoading && loadingProgress < 20 && (
+                        <p className="text-xs text-center mt-2 text-muted-foreground">
+                            Loading audio...
+                        </p>
+                    )}
+                </div>
+            )}
+
             {/* Slider */}
             <div className="mt-6 w-full">
                 <Slider
@@ -93,11 +111,11 @@ export function MobilePlayer() {
                 <Button
                     className="rounded-full p-5 bg-accent-foreground size-18"
                     onClick={togglePlayPause}
-                    disabled={isLoading}
+                    disabled={isLoading && loadingProgress < 10} // Only disable at very beginning of loading
                 >
                     <motion.div layoutId="play-pause-button">
-                        {isLoading ? (
-                            <Loader2 className="size-8 stroke-0 fill-accent animate-spin" />
+                        {isLoading && loadingProgress < 40 ? (
+                            <Loader2 className="size-8 stroke-2 text-accent animate-spin" />
                         ) : isPlaying ? (
                             <PauseIcon className="size-8 stroke-0 fill-accent" />
                         ) : (

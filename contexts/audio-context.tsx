@@ -1,6 +1,8 @@
 "use client";
 
 import type { Music } from "@/api/music.api";
+import { audioPreloader } from "@/utils/audio-preloader";
+import { useLoadingComplete } from "@/hooks/use-loading-complete";
 import { createContext, useContext, useEffect, useRef, useState, ReactNode, useCallback } from "react";
 
 interface AudioContextType {
@@ -16,6 +18,7 @@ interface AudioContextType {
     isNavigating: boolean;
     setIsNavigating: (value: boolean) => void;
     isLoading: boolean;
+    loadingProgress: number;
     isViewTransition: boolean;
     setIsViewTransition: (value: boolean) => void;
     debug: Record<string, any>;
@@ -27,6 +30,7 @@ const AudioContext = createContext<AudioContextType | undefined>(undefined);
 let sharedAudioElement: HTMLAudioElement | null = null;
 if (typeof window !== 'undefined') {
     sharedAudioElement = new Audio();
+    sharedAudioElement.preload = "auto"; // Force preloading
 }
 
 export const AudioProvider = ({ children }: { children: ReactNode }) => {
@@ -36,6 +40,7 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
     const [duration, setDuration] = useState(0);
     const [isNavigating, setIsNavigating] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [loadingProgress, setLoadingProgress] = useState(0);
     const [isViewTransition, setIsViewTransition] = useState(false);
 
     // Debug state to help troubleshoot
@@ -46,11 +51,33 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
     const playPromiseRef = useRef<Promise<void> | null>(null);
     const currentMusicIdRef = useRef<string | null>(null);
     const lastPositionRef = useRef<number>(0);
+    const loadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     // Update debug info
     const updateDebug = useCallback((info: Record<string, any>) => {
         setDebug(prev => ({ ...prev, ...info }));
     }, []);
+
+    // Clear loading timeout if exists
+    const clearLoadingTimeout = useCallback(() => {
+        if (loadTimeoutRef.current) {
+            clearTimeout(loadTimeoutRef.current);
+            loadTimeoutRef.current = null;
+        }
+    }, []);
+
+    // Use loading complete hook to ensure progress reaches 100%
+    useLoadingComplete({
+        currentValue: loadingProgress,
+        targetValue: 100,
+        threshold: 95,
+        timeout: 2000,
+        onComplete: () => {
+            setLoadingProgress(100);
+            updateDebug({ action: "loading_complete_forced" });
+        }
+    });
 
     // Initialize audio event listeners once
     useEffect(() => {
@@ -69,7 +96,6 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
         const handleMetadata = () => {
             if (audio) {
                 setDuration(audio.duration);
-                setIsLoading(false);
                 updateDebug({ event: "metadata_loaded", duration: audio.duration });
             }
         };
@@ -82,6 +108,8 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
 
         const handleCanPlay = () => {
             setIsLoading(false);
+            setLoadingProgress(100);
+            clearLoadingTimeout();
             updateDebug({ event: "can_play", src: audio.src });
         };
 
@@ -89,6 +117,8 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
             const error = (e.target as HTMLMediaElement).error;
             updateDebug({ event: "error", code: error?.code, message: error?.message });
             setIsLoading(false);
+            setLoadingProgress(0);
+            clearLoadingTimeout();
 
             // Only update UI if it's not a transition-related error
             if (!isNavigating && !isViewTransition) {
@@ -96,11 +126,77 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
             }
         };
 
+        // Track loading progress
+        const handleProgress = () => {
+            if (audio && audio.buffered.length > 0 && audio.duration > 0) {
+                const bufferedEnd = audio.buffered.end(audio.buffered.length - 1);
+                const progress = Math.min(100, Math.round((bufferedEnd / audio.duration) * 100));
+
+                // Consider loading complete if we're above 98% to avoid getting stuck
+                if (progress >= 98) {
+                    setLoadingProgress(100);
+                    setIsLoading(false);
+                } else {
+                    setLoadingProgress(progress);
+                }
+
+                updateDebug({
+                    event: "progress",
+                    value: progress,
+                    bufferedEnd,
+                    duration: audio.duration,
+                    setTo: progress >= 98 ? 100 : progress
+                });
+            }
+        };
+
+        // Add waiting event handler
+        const handleWaiting = () => {
+            setIsLoading(true);
+            updateDebug({ event: "waiting" });
+        };
+
+        // Add playing event handler
+        const handlePlaying = () => {
+            setIsLoading(false);
+
+            // Force loading to be complete after a delay once playing starts
+            setTimeout(() => {
+                setLoadingProgress(100);
+            }, 2000);
+
+            clearLoadingTimeout();
+            updateDebug({ event: "playing" });
+        };
+
         audio.addEventListener('timeupdate', handleTimeUpdate);
         audio.addEventListener('loadedmetadata', handleMetadata);
         audio.addEventListener('ended', handleEnded);
         audio.addEventListener('canplay', handleCanPlay);
         audio.addEventListener('error', handleError);
+        audio.addEventListener('progress', handleProgress);
+        audio.addEventListener('waiting', handleWaiting);
+        audio.addEventListener('playing', handlePlaying);
+
+        // Start a progress timer when loading
+        if (isLoading && !progressTimerRef.current) {
+            progressTimerRef.current = setInterval(() => {
+                // Simulate gradual progress if real progress isn't moving
+                if (loadingProgress < 90) {
+                    setLoadingProgress(prev => {
+                        // Calculate a new progress that increases more slowly as it approaches 90%
+                        const increment = Math.max(0.5, (90 - prev) / 10);
+                        return Math.min(90, prev + increment);
+                    });
+
+                    // Force a progress event check
+                    handleProgress();
+                }
+            }, 300);
+        } else if (!isLoading && progressTimerRef.current) {
+            clearInterval(progressTimerRef.current);
+            progressTimerRef.current = null;
+        }
 
         return () => {
             audio.removeEventListener('timeupdate', handleTimeUpdate);
@@ -108,8 +204,17 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
             audio.removeEventListener('ended', handleEnded);
             audio.removeEventListener('canplay', handleCanPlay);
             audio.removeEventListener('error', handleError);
+            audio.removeEventListener('progress', handleProgress);
+            audio.removeEventListener('waiting', handleWaiting);
+            audio.removeEventListener('playing', handlePlaying);
+
+            // Clean up timer
+            if (progressTimerRef.current) {
+                clearInterval(progressTimerRef.current);
+                progressTimerRef.current = null;
+            }
         };
-    }, [isNavigating, isViewTransition, updateDebug]);
+    }, [isNavigating, isViewTransition, updateDebug, clearLoadingTimeout, loadingProgress]);
 
     // Handle setting current music with transition awareness
     const setCurrentMusic = useCallback((music: Music | null) => {
@@ -141,7 +246,6 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
         // Preserve playback state
         const wasPlaying = isPlaying;
         const currentTimeValue = lastPositionRef.current;
-        setIsLoading(true);
 
         // Different music - need to update audio source
         if (!isSameMusic) {
@@ -151,13 +255,52 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
                 playPromiseRef.current = null;
             }
 
-            // Set new audio source
-            audio.pause();
-            audio.src = music.streamUri;
-            audio.load();
+            // Clear any existing loading timeout
+            clearLoadingTimeout();
+
+            setIsLoading(true);
+            setLoadingProgress(0); // Reset to 0
+
+            // Set a timeout to force loading state to complete if taking too long
+            loadTimeoutRef.current = setTimeout(() => {
+                setIsLoading(false);
+                setLoadingProgress(100); // Force to 100% after timeout
+                updateDebug({ action: "loading_timeout_triggered" });
+            }, 8000); // 8 second timeout
+
+            // Try to use preloaded audio if available
+            const preloaded = audioPreloader.getPreloaded(music.streamUri);
+            if (preloaded) {
+                // Use the preloaded audio element
+                if (sharedAudioElement !== preloaded) {
+                    // Replace the shared audio element
+                    sharedAudioElement = preloaded;
+                    audioRef.current = preloaded;
+
+                    // Start at 50% progress since we already preloaded
+                    setLoadingProgress(50);
+                    updateDebug({ action: "using_preloaded_audio", progress: 50 });
+                }
+            } else {
+                // Set new audio source
+                audio.pause();
+                audio.src = music.streamUri;
+                audio.load();
+
+                // Start at 5% to show immediate feedback
+                setLoadingProgress(5);
+                updateDebug({ action: "loading_new_audio", progress: 5 });
+            }
+
             currentMusicIdRef.current = music.id;
             lastPositionRef.current = 0;
             setCurrentTime(0);
+
+            // Start preloading next track if available
+            if (music?.nextTrackUri) {
+                audioPreloader.preload(music.nextTrackUri)
+                    .catch(err => updateDebug({ action: "preload_error", error: err.message }));
+            }
         }
         else if (isViewTransition) {
             // Same music during view transition - maintain position
@@ -178,7 +321,7 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
                 safePlay();
             }, 50);
         }
-    }, [isPlaying, isNavigating, isViewTransition, updateDebug]);
+    }, [isPlaying, isNavigating, isViewTransition, updateDebug, clearLoadingTimeout]);
 
     // Safe play function that handles promise rejection gracefully
     const safePlay = useCallback(() => {
@@ -196,7 +339,19 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
                     updateDebug({ action: "play_success" });
                     playPromiseRef.current = null;
                     setIsPlaying(true);
-                    setIsLoading(false);
+
+                    // If we're able to play, and buffered significantly, consider loading done
+                    if (audio.buffered.length > 0 && audio.duration > 0) {
+                        const bufferedEnd = audio.buffered.end(audio.buffered.length - 1);
+                        const progress = (bufferedEnd / audio.duration) * 100;
+                        if (progress > 50) {
+                            setIsLoading(false);
+                            // Force progress to 100% after a delay if playback starts successfully
+                            setTimeout(() => {
+                                setLoadingProgress(100);
+                            }, 1500);
+                        }
+                    }
                 })
                 .catch(err => {
                     updateDebug({ action: "play_error", error: err.message });
@@ -316,6 +471,21 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [isViewTransition, updateDebug]);
 
+    // Clean up on unmount
+    useEffect(() => {
+        return () => {
+            clearLoadingTimeout();
+
+            // Also clear any progress timers that might be running
+            if (progressTimerRef.current) {
+                clearInterval(progressTimerRef.current);
+                progressTimerRef.current = null;
+            }
+
+            audioPreloader.clearCache();
+        };
+    }, [clearLoadingTimeout]);
+
     return (
         <AudioContext.Provider
             value={{
@@ -331,6 +501,7 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
                 isNavigating,
                 setIsNavigating,
                 isLoading,
+                loadingProgress,
                 isViewTransition,
                 setIsViewTransition,
                 debug,
