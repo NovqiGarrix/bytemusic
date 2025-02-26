@@ -1,9 +1,10 @@
 import { useAudio } from "@/contexts/audio-context";
 import { useGetMusic } from "@/hooks/use-get-music";
-import { PauseIcon, PlayIcon, RepeatIcon, ShuffleIcon, SkipBackIcon, SkipForwardIcon } from "lucide-react";
-import { useEffect } from "react";
+import { Loader2, PauseIcon, PlayIcon, RepeatIcon, ShuffleIcon, SkipBackIcon, SkipForwardIcon } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { Button } from "./ui/button";
 import { Slider } from "./ui/slider";
+import { motion } from "motion/react";
 
 // Helper function to format time in MM:SS format
 const formatTime = (seconds: number): string => {
@@ -20,15 +21,25 @@ export function MobilePlayer() {
         duration,
         togglePlayPause,
         seekByPercentage,
-        setCurrentMusic
+        setCurrentMusic,
+        isLoading,
+        currentMusic,
+        isViewTransition
     } = useAudio();
 
-    // Set current music when it's loaded
+    // Keep track of initialization
+    const hasInitialized = useRef(false);
+
+    // Set current music only once on initial load
     useEffect(() => {
-        if (music) {
+        // Set music if: 
+        // 1. We have music data
+        // 2. Either we haven't initialized yet OR this is a different music (not a view transition)
+        if (music && (!hasInitialized.current || (!isViewTransition && currentMusic?.id !== music.id))) {
             setCurrentMusic(music);
+            hasInitialized.current = true;
         }
-    }, [music, setCurrentMusic]);
+    }, [music, setCurrentMusic, currentMusic?.id, isViewTransition]);
 
     // Calculate slider value as a percentage of the current time
     const sliderValue = duration > 0 ? (currentTime / duration) * 100 : 0;
@@ -40,8 +51,18 @@ export function MobilePlayer() {
 
     return (
         <div className="px-6 py-5">
-            <h1 className="text-2xl font-semibold">{music?.snippet.title}</h1>
-            <h2 className="mt-1 text-muted-foreground">{music?.snippet.channelTitle}</h2>
+            <motion.h1
+                className="text-2xl font-semibold"
+                layoutId={`title-${music?.id}`}
+            >
+                {music?.snippet.title}
+            </motion.h1>
+            <motion.h2
+                className="mt-1 text-muted-foreground"
+                layoutId={`artist-${music?.id}`}
+            >
+                {music?.snippet.channelTitle}
+            </motion.h2>
 
             {/* Slider */}
             <div className="mt-6 w-full">
@@ -51,6 +72,7 @@ export function MobilePlayer() {
                     step={0.1}
                     className="w-full"
                     onValueChange={handleSeek}
+                    disabled={isLoading}
                 />
 
                 <div className="flex items-center justify-between mt-2">
@@ -71,12 +93,17 @@ export function MobilePlayer() {
                 <Button
                     className="rounded-full p-5 bg-accent-foreground size-18"
                     onClick={togglePlayPause}
+                    disabled={isLoading}
                 >
-                    {isPlaying ? (
-                        <PauseIcon className="size-8 stroke-0 fill-accent" />
-                    ) : (
-                        <PlayIcon className="size-8 stroke-0 fill-accent" />
-                    )}
+                    <motion.div layoutId="play-pause-button">
+                        {isLoading ? (
+                            <Loader2 className="size-8 stroke-0 fill-accent animate-spin" />
+                        ) : isPlaying ? (
+                            <PauseIcon className="size-8 stroke-0 fill-accent" />
+                        ) : (
+                            <PlayIcon className="size-8 stroke-0 fill-accent" />
+                        )}
+                    </motion.div>
                 </Button>
 
                 <Button variant="ghost" size="icon">

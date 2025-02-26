@@ -3,7 +3,7 @@ import { API_BASE_URL } from ".";
 
 const BASE_URL = `${API_BASE_URL}/musics`;
 
-const musicSchema = z.object({
+export const musicSchema = z.object({
     id: z.string(),
     snippet: z.object({
         title: z.string(),

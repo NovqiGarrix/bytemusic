@@ -1,23 +1,27 @@
-import { useGetMusic } from "@/hooks/use-get-music";
+"use client";
+
+import { useAudio } from "@/contexts/audio-context";
+import { motion } from "motion/react";
 import Image from "next/image";
 
-
 export function MobileMusicThumbnail() {
-    const { data: music } = useGetMusic()!;
+    const { currentMusic } = useAudio();
+
+    if (!currentMusic) return null;
 
     return (
-        <div className="w-full mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col md:flex-row gap-6">
-                <div className="w-full md:w-[640px] aspect-video relative rounded-lg overflow-hidden bg-muted">
-                    <Image
-                        src={music.snippet.thumbnails.standard.url}
-                        alt={music.snippet.title}
-                        fill
-                        className="object-cover"
-                        priority
-                    />
-                </div>
-            </div>
+        <div className="flex-1 flex items-center justify-center px-8">
+            <motion.div
+                className="w-full max-w-md aspect-square relative rounded-md overflow-hidden shadow-lg"
+                layoutId={`thumbnail-${currentMusic.id}`}
+            >
+                <Image
+                    src={currentMusic.snippet.thumbnails?.standard?.url || "/placeholder-image.jpg"}
+                    alt={currentMusic.snippet.title}
+                    fill
+                    className="object-cover"
+                />
+            </motion.div>
         </div>
-    )
+    );
 }
