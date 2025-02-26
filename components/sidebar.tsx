@@ -6,7 +6,7 @@ import { Compass, Crown, Home, Library, PlusCircle } from "lucide-react"
 
 export function Sidebar() {
   return (
-    <div className="pb-12 border-r">
+    <div className="hidden lg:block pb-12 border-r">
       <div className="space-y-4 py-4">
         <div className="px-3">
           <div className="space-y-1">

@@ -34,6 +34,8 @@
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
+
+  --breakpoints-xs: 480px;
 }
 
 @utility container {

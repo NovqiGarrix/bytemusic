@@ -55,21 +55,20 @@ const listenAgainItems = [
 ]
 
 export function ListenAgain() {
-
     const [api, setApi] = useState<CarouselApi>();
 
     return (
         <section className="mt-3">
             <div className="flex items-center justify-between mb-4">
                 <div className="space-y-1">
-                    <h2 className="text-2xl font-semibold tracking-tight">Listen again</h2>
-                    <p className="text-sm text-muted-foreground">NOVQIGARRIX</p>
+                    <h2 className="text-xl sm:text-2xl font-semibold tracking-tight">Listen again</h2>
+                    <p className="text-xs sm:text-sm text-muted-foreground">NOVQIGARRIX</p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button disabled={!api?.canScrollPrev} variant="outline" size="icon" onClick={() => api?.scrollPrev()}>
+                    <Button disabled={!api?.canScrollPrev} variant="outline" size="icon" className="h-8 w-8" onClick={() => api?.scrollPrev()}>
                         <ChevronLeft className="h-4 w-4" />
                     </Button>
-                    <Button disabled={!!!api?.canScrollNext} variant="outline" size="icon" onClick={() => api?.scrollNext()}>
+                    <Button disabled={!!!api?.canScrollNext} variant="outline" size="icon" className="h-8 w-8" onClick={() => api?.scrollNext()}>
                         <ChevronRight className="h-4 w-4" />
                     </Button>
                 </div>
@@ -86,7 +85,7 @@ export function ListenAgain() {
             >
                 <CarouselContent>
                     {listenAgainItems.map((item, index) => (
-                        <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/4">
+                        <CarouselItem key={index} className="basis-full xs:basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5 xl:basis-1/6">
                             <VideoCard
                                 title={item.title}
                                 artist={item.artist}

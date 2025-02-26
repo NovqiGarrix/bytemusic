@@ -1,32 +1,37 @@
-import { Play } from "lucide-react"
-import Image from "next/image"
+import Image from "next/image";
+import { cn } from "@/lib/utils";
 
 interface VideoCardProps {
-  title: string
-  artist: string
-  views: string
-  imageUrl: string
+  title: string;
+  artist: string;
+  views?: string;
+  imageUrl: string;
+  className?: string;
 }
 
-export function VideoCard({ title, artist, views, imageUrl }: VideoCardProps) {
+export function VideoCard({
+  title,
+  artist,
+  views,
+  imageUrl,
+  className,
+}: VideoCardProps) {
   return (
-    <button className="relative group w-full h-full cursor-pointer">
-      <div className="relative aspect-video rounded overflow-hidden">
-        <Image src={imageUrl || "/placeholder.svg"} alt={title} fill className="object-cover" />
-        <div className="absolute inset-0 group-hover:bg-black/40 bg-black/10">
-          <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transform text-white"
-          >
-            <Play className="h-8 w-8 fill-current" />
-          </div>
-        </div>
+    <div className={cn("space-y-3 cursor-pointer group", className)}>
+      <div className="overflow-hidden rounded-md relative aspect-video">
+        <Image
+          src={imageUrl}
+          alt={title}
+          fill
+          className="object-cover transition-all group-hover:scale-105"
+        />
       </div>
-      <div className="mt-2 text-left">
-        <h3 className="font-semibold line-clamp-2">{title}</h3>
-        <p className="text-sm text-muted-foreground">{artist}</p>
-        {views && <p className="text-sm text-muted-foreground">{views}</p>}
+      <div className="space-y-1 text-sm">
+        <h3 className="font-medium leading-tight line-clamp-2">{title}</h3>
+        <p className="text-xs text-muted-foreground">{artist}</p>
+        {views && <p className="text-xs text-muted-foreground">{views}</p>}
       </div>
-    </button>
-  )
+    </div>
+  );
 }
 
