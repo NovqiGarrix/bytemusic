@@ -17,7 +17,9 @@ const musicSchema = z.object({
         channelTitle: z.string()
     }),
     streamUri: z.string().url()
-})
+});
+
+export type Music = z.infer<typeof musicSchema>;
 
 const MUSIC_FIELD = 'id, snippet.title, snippet.thumbnails.standard, snippet.channelTitle, streamUri, contentDetails';
 

@@ -1,10 +1,12 @@
-import type { Metadata } from "next"
-import { Inter } from "next/font/google"
-import type React from "react"
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import type React from "react";
 import QueryClientProvider from '@/providers/query-client-provider';
-import "./globals.css"
+import { AudioProvider } from "@/contexts/audio-context";
+import { MiniPlayer } from "@/components/mini-player";
+import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "ByteMusic",
@@ -20,7 +22,12 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={inter.className}>
-        <QueryClientProvider>{children}</QueryClientProvider>
+        <QueryClientProvider>
+          <AudioProvider>
+            {children}
+            <MiniPlayer />
+          </AudioProvider>
+        </QueryClientProvider>
       </body>
     </html>
   )

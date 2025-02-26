@@ -6,8 +6,11 @@ import { MoodChips } from "@/components/mood-chips"
 import { Sidebar } from "@/components/sidebar"
 import { Button } from "@/components/ui/button"
 import { VideoCard } from "@/components/video-card"
+import { useAudio } from "@/contexts/audio-context"
 
 export default function Home() {
+  const { currentMusic } = useAudio();
+  const hasMiniPlayer = !!currentMusic;
 
   return (
     <div className="bg-background h-screen flex flex-col">
@@ -19,7 +22,7 @@ export default function Home() {
 
         {/* MAIN CONTENT */}
         <div className="flex flex-col h-full overflow-hidden">
-          <main className="flex-1 overflow-y-auto">
+          <main className={`flex-1 overflow-y-auto ${hasMiniPlayer ? 'pb-14' : ''}`}>
             <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 pb-8">
               <div className="py-6">
                 <MoodChips />
