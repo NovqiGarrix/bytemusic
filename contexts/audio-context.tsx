@@ -471,6 +471,34 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [isViewTransition, updateDebug]);
 
+    // Handle keyboard shortcuts for playback control
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Skip if we're in an input, textarea, or contentEditable element
+            if (
+                e.target instanceof HTMLElement &&
+                (e.target.tagName === 'INPUT' ||
+                    e.target.tagName === 'TEXTAREA' ||
+                    e.target.isContentEditable)
+            ) {
+                return;
+            }
+
+            // Space key toggles play/pause
+            if (e.code === 'Space' && currentMusic) {
+                e.preventDefault(); // Prevent page scrolling
+                togglePlayPause();
+                updateDebug({ action: "keyboard_shortcut", key: "Space" });
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [currentMusic, togglePlayPause, updateDebug]);
+
     // Clean up on unmount
     useEffect(() => {
         return () => {
