@@ -1,5 +1,6 @@
-import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { PlayIcon } from "lucide-react";
+import Image from "next/image";
 
 interface VideoCardProps {
   title: string;
@@ -25,6 +26,7 @@ export function VideoCard({
           fill
           className="object-cover transition-all group-hover:scale-105"
         />
+        <PlayIcon className="absolute fill-white inset-1/2 w-8 h-8 text-white transform -translate-x-1/2 -translate-y-1/2" />
       </div>
       <div className="space-y-1 text-sm">
         <h3 className="font-medium leading-tight line-clamp-2">{title}</h3>
