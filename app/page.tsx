@@ -8,12 +8,6 @@ import { PageTransitionWrapper } from "@/components/page-transition-wrapper"
 import { Sidebar } from "@/components/sidebar"
 import { useAudio } from "@/contexts/audio-context"
 
-// export const metadata: Metadata = {
-//   title: "ByteMusic",
-//   description: "A modern music streaming platform",
-//   generator: 'v0.dev'
-// }
-
 export default function Home() {
   const { currentMusic } = useAudio();
   const hasMiniPlayer = !!currentMusic;
