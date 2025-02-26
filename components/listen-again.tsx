@@ -5,9 +5,10 @@ import {
     type CarouselApi
 } from "@/components/ui/carousel";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import { VideoCard } from "./video-card";
+import { EmblaCarouselType } from 'embla-carousel';
 
 const listenAgainItems = [
     {
@@ -56,6 +57,25 @@ const listenAgainItems = [
 
 export function ListenAgain() {
     const [api, setApi] = useState<CarouselApi>();
+    const [canScrollNext, setCanScrollNext] = useState(false);
+    const [canScrollPrev, setCanScrollPrev] = useState(false);
+
+    useEffect(() => {
+        if (!api) return;
+
+        function handleCanScrollNext(cb: EmblaCarouselType) {
+            setCanScrollNext(cb.canScrollNext());
+            setCanScrollPrev(cb.canScrollPrev());
+        }
+
+        api.on('select', handleCanScrollNext);
+        handleCanScrollNext(api);
+
+        return () => {
+            api.off('select', handleCanScrollNext);
+        }
+
+    }, [api]);
 
     return (
         <section className="mt-3">
@@ -65,10 +85,10 @@ export function ListenAgain() {
                     <p className="text-xs sm:text-sm text-muted-foreground">NOVQIGARRIX</p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button disabled={!api?.canScrollPrev} variant="outline" size="icon" className="h-8 w-8" onClick={() => api?.scrollPrev()}>
+                    <Button disabled={!canScrollPrev} variant="outline" size="icon" className="h-8 w-8" onClick={() => api?.scrollPrev()}>
                         <ChevronLeft className="h-4 w-4" />
                     </Button>
-                    <Button disabled={!!!api?.canScrollNext} variant="outline" size="icon" className="h-8 w-8" onClick={() => api?.scrollNext()}>
+                    <Button disabled={!canScrollNext} variant="outline" size="icon" className="h-8 w-8" onClick={() => api?.scrollNext()}>
                         <ChevronRight className="h-4 w-4" />
                     </Button>
                 </div>
@@ -79,7 +99,6 @@ export function ListenAgain() {
                 opts={{
                     align: "start",
                     slidesToScroll: 1,
-                    duration: 20,
                 }}
                 className="w-full"
             >
