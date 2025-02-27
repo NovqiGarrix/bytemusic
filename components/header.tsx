@@ -1,3 +1,5 @@
+"use client"
+
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog"
 import { Music2, Search } from "lucide-react"
@@ -5,14 +7,26 @@ import Link from "next/link"
 import { useState } from "react"
 import { MobileNav } from "./mobile-nav"
 import { Button } from "./ui/button"
+import { useQueryState } from "nuqs"
 
 export function Header() {
     const [isSearchOpen, setIsSearchOpen] = useState(false)
+    const [inputValue, setInputValue] = useState("")
+    const [searchQuery, setSearchQuery] = useQueryState("q")
 
-    const handleSearchSubmit = (e: React.FormEvent) => {
+    const handleSearchSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        // Add search handling logic here
-        setIsSearchOpen(false)
+        if (inputValue.trim()) {
+            await setSearchQuery(inputValue.trim())
+            setIsSearchOpen(false)
+        }
+    }
+
+    const handleDesktopSearch = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (inputValue.trim()) {
+            await setSearchQuery(inputValue.trim())
+        }
     }
 
     return (
@@ -29,19 +43,23 @@ export function Header() {
 
                 {/* Desktop search */}
                 <div className="hidden md:flex flex-1 max-w-xl w-full">
-                    <div className="relative flex-1 max-w-2xl">
+                    <form onSubmit={handleDesktopSearch} className="relative flex-1 max-w-2xl w-full">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />
-                        <Input placeholder="Search songs, albums, artists" className="pl-9 bg-muted/50" />
-                    </div>
+                        <Input
+                            placeholder="Search songs, albums, artists"
+                            className="pl-9 bg-muted/50"
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
+                        />
+                    </form>
                 </div>
 
-                {/* Controlled Dialog without DialogTrigger */}
+                {/* Mobile search dialog */}
                 <Dialog
                     open={isSearchOpen}
                     onOpenChange={setIsSearchOpen}
                 >
                     <DialogTrigger asChild>
-                        {/* <Button variant="outline">Edit Profile</Button> */}
                         <Button
                             className="md:hidden ml-auto"
                             variant="ghost"
@@ -64,6 +82,8 @@ export function Header() {
                                     placeholder="Search songs, albums, artists"
                                     className="pl-9 bg-muted/50 w-full"
                                     autoFocus
+                                    value={inputValue}
+                                    onChange={(e) => setInputValue(e.target.value)}
                                 />
                             </div>
                             <div className="flex justify-end gap-2">

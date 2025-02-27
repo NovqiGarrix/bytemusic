@@ -44,3 +44,34 @@ export async function getMusicById(id: string) {
     }
 
 }
+
+export async function getMusicByVideoId(videoId: string) {
+
+    try {
+
+        const resp = await fetch(`${BASE_URL}/track_by_video`, {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                url: videoId
+            })
+        });
+
+        const { data, error } = await resp.json();
+        console.log({ data, error });
+
+        switch (resp.status) {
+            case 200:
+                return musicSchema.parse(data);
+
+            default:
+                throw new Error(error);
+        }
+
+    } catch (error) {
+        throw error;
+    }
+
+}

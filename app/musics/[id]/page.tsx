@@ -60,7 +60,11 @@ export default function MusicDetailPage() {
     setIsNavigating(true);
 
     // Navigate back home
-    router.push('/');
+    try {
+      router.back();
+    } catch (error) {
+      router.replace('/');
+    }
   };
 
   if (!currentMusic) return null;
