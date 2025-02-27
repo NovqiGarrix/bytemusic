@@ -34,12 +34,15 @@ export default function MusicDetailPage() {
       // 3. User hasn't explicitly paused it
       // 4. This is the first mount of this component
       if (currentMusic && !isPlaying && !isUserPaused && isFirstMount.current) {
-        togglePlayPause();
+        // Use a small delay to prevent audio glitching
+        setTimeout(() => {
+          togglePlayPause();
+        }, 100);
       }
 
       // No longer the first mount
       isFirstMount.current = false;
-    }, 200);
+    }, 300); // Increased delay for better stability
 
     // Redirect if no music
     if (!currentMusic) {

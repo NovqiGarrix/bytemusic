@@ -13,24 +13,19 @@ export function MusicForYou() {
         queryFn: () => getMusics()
     });
 
-    const { setCurrentMusic, setIsNavigating, isPlaying, togglePlayPause } = useAudio();
+    const { setIsNavigating, switchTrack } = useAudio();
 
-    function handleOnClick(music: Music) {
+    async function handleOnClick(music: Music) {
         // First mark that we're navigating to prevent mini-player flicker
         setIsNavigating(true);
 
-        // Set the current music before navigation
-        setCurrentMusic(music);
-
-        // If not already playing, start playback
-        if (!isPlaying) {
-            togglePlayPause();
-        }
+        // Use the new switchTrack method for smoother transitions
+        await switchTrack(music);
 
         // Delay the navigation very slightly to ensure state updates
         setTimeout(() => {
             router.push(`/musics/${music.id}`);
-        }, 5);
+        }, 50);
     }
 
     return (

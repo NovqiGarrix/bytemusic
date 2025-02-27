@@ -88,6 +88,26 @@ export class AudioPreloader {
     }
 
     /**
+     * Release a preloaded audio element from the cache
+     */
+    releaseAudio(uri: string): void {
+        const cached = this.cache.get(uri);
+        if (cached) {
+            // Stop any ongoing loading/buffering
+            cached.audio.src = '';
+            this.cache.delete(uri);
+            console.log(`[Preloader] Released audio for ${uri}`);
+        }
+    }
+
+    /**
+     * Get all preloaded URIs
+     */
+    getPreloadedUris(): string[] {
+        return Array.from(this.cache.keys());
+    }
+
+    /**
      * Keep cache size under limit by removing oldest entries
      */
     private pruneCache(): void {
@@ -102,9 +122,11 @@ export class AudioPreloader {
     }
 
     /**
-     * Clear the entire preload cache
+     * Clear the entire preload cache, properly releasing audio elements
      */
     clearCache(): void {
+        // Properly release all audio elements
+        this.getPreloadedUris().forEach(uri => this.releaseAudio(uri));
         this.cache.clear();
     }
 }

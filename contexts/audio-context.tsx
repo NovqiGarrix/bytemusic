@@ -25,6 +25,7 @@ interface AudioContextType {
     // New function to set music and start playing
     setAndPlayMusic: (music: Music | null) => void;
     isUserPaused: boolean;
+    switchTrack: (music: Music) => Promise<void>; // New method for smooth track switching
 }
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
@@ -220,6 +221,28 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
         };
     }, [isNavigating, isViewTransition, updateDebug, clearLoadingTimeout, loadingProgress]);
 
+    // Properly reset audio element when switching tracks
+    const resetAudioElement = useCallback(() => {
+        const audio = audioRef.current;
+        if (!audio) return;
+
+        // Cancel any pending play operations
+        if (playPromiseRef.current) {
+            playPromiseRef.current.catch(() => { });
+            playPromiseRef.current = null;
+        }
+
+        // Stop any active playback immediately to prevent audio overlap
+        try {
+            audio.pause();
+            // Reset source to stop any buffering/downloading
+            audio.removeAttribute('src');
+            audio.load();
+        } catch (e) {
+            console.warn("Error resetting audio element:", e);
+        }
+    }, []);
+
     // Handle setting current music with transition awareness
     const setCurrentMusic = useCallback((music: Music | null) => {
         const audio = audioRef.current;
@@ -253,11 +276,8 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
 
         // Different music - need to update audio source
         if (!isSameMusic) {
-            // Cancel any pending play operations
-            if (playPromiseRef.current) {
-                playPromiseRef.current.catch(() => { });
-                playPromiseRef.current = null;
-            }
+            // Reset audio element completely to avoid glitches between tracks
+            resetAudioElement();
 
             // Clear any existing loading timeout
             clearLoadingTimeout();
@@ -277,6 +297,12 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
             if (preloaded) {
                 // Use the preloaded audio element
                 if (sharedAudioElement !== preloaded) {
+                    // Release previous shared audio element if different
+                    if (sharedAudioElement) {
+                        sharedAudioElement.pause();
+                        sharedAudioElement.src = '';
+                    }
+
                     // Replace the shared audio element
                     sharedAudioElement = preloaded;
                     audioRef.current = preloaded;
@@ -325,7 +351,7 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
                 safePlay();
             }, 50);
         }
-    }, [isPlaying, isNavigating, isViewTransition, updateDebug, clearLoadingTimeout]);
+    }, [isPlaying, isNavigating, isViewTransition, updateDebug, clearLoadingTimeout, resetAudioElement]);
 
     // Safe play function that handles promise rejection gracefully
     const safePlay = useCallback(() => {
@@ -536,6 +562,42 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [isPlaying, setCurrentMusic, safePlay]);
 
+    // Add new method for smooth track switching
+    const switchTrack = useCallback(async (music: Music): Promise<void> => {
+        // Release any previous playing audio and preloaded tracks to avoid memory issues
+        if (currentMusic?.streamUri) {
+            audioPreloader.releaseAudio(currentMusic.streamUri);
+        }
+
+        // Reset audio element to stop any ongoing playback
+        resetAudioElement();
+
+        // Mark that we're loading a new track
+        setIsLoading(true);
+        setLoadingProgress(0);
+
+        try {
+            // Preload the new track immediately to minimize delay
+            await audioPreloader.preload(music.streamUri);
+
+            // Now set the music with the preloaded track
+            setCurrentMusic(music);
+
+            // Start playing automatically after a short delay
+            setTimeout(() => {
+                setIsPlaying(true);
+                safePlay();
+                userPausedRef.current = false;
+            }, 50);
+        } catch (error) {
+            console.error("Error switching tracks:", error);
+            // Fallback to regular loading if preload fails
+            setCurrentMusic(music);
+        }
+
+        return Promise.resolve();
+    }, [currentMusic, resetAudioElement, setCurrentMusic, safePlay]);
+
     const isUserPaused = userPausedRef.current;
 
     return (
@@ -559,6 +621,7 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
                 debug,
                 setAndPlayMusic, // Add the new function to the context
                 isUserPaused,
+                switchTrack, // Add the new method
             }}
         >
             {children}
