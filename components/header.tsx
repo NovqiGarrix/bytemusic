@@ -12,7 +12,7 @@ import { useQueryState } from "nuqs"
 export function Header() {
     const [isSearchOpen, setIsSearchOpen] = useState(false)
     const [inputValue, setInputValue] = useState("")
-    const [searchQuery, setSearchQuery] = useQueryState("q")
+    const [_, setSearchQuery] = useQueryState("q")
 
     const handleSearchSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
