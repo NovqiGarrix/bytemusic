@@ -5,19 +5,40 @@ import { MobileMusicThumbnail } from "@/components/MobileMusicThumbnail"
 import { useAudio } from "@/contexts/audio-context"
 import { ChevronDownIcon, EllipsisVerticalIcon } from "lucide-react"
 import { motion } from "motion/react"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 
 export default function MusicDetailPage() {
   const router = useRouter()
-  const { currentMusic, setIsNavigating, setIsViewTransition } = useAudio()
+  const {
+    currentMusic,
+    setIsNavigating,
+    setIsViewTransition,
+    isPlaying,
+    togglePlayPause,
+    isUserPaused
+  } = useAudio()
+
+  // Track if this is the first mount of the component
+  const isFirstMount = useRef(true)
 
   // Reset navigation state when component mounts
   useEffect(() => {
     // Small delay to ensure view has rendered before resetting navigation state
     const timer = setTimeout(() => {
       setIsNavigating(false);
+
+      // Only auto-play if:
+      // 1. We have music
+      // 2. It's not already playing
+      // 3. User hasn't explicitly paused it
+      // 4. This is the first mount of this component
+      if (currentMusic && !isPlaying && !isUserPaused && isFirstMount.current) {
+        togglePlayPause();
+      }
+
+      // No longer the first mount
+      isFirstMount.current = false;
     }, 200);
 
     // Redirect if no music
@@ -26,7 +47,7 @@ export default function MusicDetailPage() {
     }
 
     return () => clearTimeout(timer);
-  }, [currentMusic, router, setIsNavigating]);
+  }, [currentMusic, router, setIsNavigating, isPlaying, togglePlayPause, isUserPaused]);
 
   // Explicitly handle back navigation
   const handleBackClick = (e: React.MouseEvent) => {

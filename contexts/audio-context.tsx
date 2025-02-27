@@ -22,6 +22,9 @@ interface AudioContextType {
     isViewTransition: boolean;
     setIsViewTransition: (value: boolean) => void;
     debug: Record<string, any>;
+    // New function to set music and start playing
+    setAndPlayMusic: (music: Music | null) => void;
+    isUserPaused: boolean;
 }
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
@@ -53,6 +56,7 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
     const lastPositionRef = useRef<number>(0);
     const loadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const userPausedRef = useRef<boolean>(false);
 
     // Update debug info
     const updateDebug = useCallback((info: Record<string, any>) => {
@@ -386,6 +390,9 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
         });
 
         if (isPlaying) {
+            // Mark this as a user-initiated pause
+            userPausedRef.current = true;
+
             // If we have a pending play promise, wait for it before pausing
             if (playPromiseRef.current) {
                 playPromiseRef.current
@@ -401,6 +408,8 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
                 setIsPlaying(false);
             }
         } else {
+            // User is playing, clear the paused flag
+            userPausedRef.current = false;
             setIsPlaying(true);
             safePlay();
         }
@@ -514,6 +523,21 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
         };
     }, [clearLoadingTimeout]);
 
+    // New function to set music and start playing in one step
+    const setAndPlayMusic = useCallback((music: Music | null) => {
+        setCurrentMusic(music);
+
+        if (music && !isPlaying) {
+            // Short timeout to ensure music is set before playing
+            setTimeout(() => {
+                setIsPlaying(true);
+                safePlay();
+            }, 50);
+        }
+    }, [isPlaying, setCurrentMusic, safePlay]);
+
+    const isUserPaused = userPausedRef.current;
+
     return (
         <AudioContext.Provider
             value={{
@@ -533,6 +557,8 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
                 isViewTransition,
                 setIsViewTransition,
                 debug,
+                setAndPlayMusic, // Add the new function to the context
+                isUserPaused,
             }}
         >
             {children}

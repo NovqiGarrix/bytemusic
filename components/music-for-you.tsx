@@ -13,7 +13,7 @@ export function MusicForYou() {
         queryFn: () => getMusics()
     });
 
-    const { setCurrentMusic, setIsNavigating } = useAudio();
+    const { setCurrentMusic, setIsNavigating, isPlaying, togglePlayPause } = useAudio();
 
     function handleOnClick(music: Music) {
         // First mark that we're navigating to prevent mini-player flicker
@@ -21,6 +21,11 @@ export function MusicForYou() {
 
         // Set the current music before navigation
         setCurrentMusic(music);
+
+        // If not already playing, start playback
+        if (!isPlaying) {
+            togglePlayPause();
+        }
 
         // Delay the navigation very slightly to ensure state updates
         setTimeout(() => {
