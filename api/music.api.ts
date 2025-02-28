@@ -60,7 +60,6 @@ export async function getMusicByVideoId(videoId: string) {
         });
 
         const { data, error } = await resp.json();
-        console.log({ data, error });
 
         switch (resp.status) {
             case 200:
