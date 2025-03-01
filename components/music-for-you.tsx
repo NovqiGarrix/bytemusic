@@ -13,19 +13,20 @@ export function MusicForYou() {
         queryFn: () => getMusics()
     });
 
-    const { setIsNavigating, switchTrack } = useAudio();
+    const { switchTrack } = useAudio();
 
     async function handleOnClick(music: Music) {
-        // First mark that we're navigating to prevent mini-player flicker
-        setIsNavigating(true);
+        try {
+            // First switch track
+            await switchTrack(music);
 
-        // Use the new switchTrack method for smoother transitions
-        await switchTrack(music);
-
-        // Delay the navigation very slightly to ensure state updates
-        setTimeout(() => {
+            // Only navigate after the track switch is successful or at least started
             router.push(`/musics/${music.id}`);
-        }, 50);
+        } catch (error) {
+            console.error("Error playing track:", error);
+            // Still navigate to the music page even if playback fails
+            router.push(`/musics/${music.id}`);
+        }
     }
 
     return (

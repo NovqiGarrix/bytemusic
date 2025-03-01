@@ -24,23 +24,15 @@ export function MobilePlayer() {
         setCurrentMusic,
         isLoading,
         loadingProgress,
-        currentMusic,
-        isViewTransition
+        currentMusic
     } = useAudio();
 
-    // Keep track of initialization
-    const hasInitialized = useRef(false);
-
-    // Set current music only once on initial load
+    // Simplify initial music setup
     useEffect(() => {
-        // Set music if: 
-        // 1. We have music data
-        // 2. Either we haven't initialized yet OR this is a different music (not a view transition)
-        if (music && (!hasInitialized.current || (!isViewTransition && currentMusic?.id !== music.id))) {
+        if (music && currentMusic?.id !== music.id) {
             setCurrentMusic(music);
-            hasInitialized.current = true;
         }
-    }, [music, setCurrentMusic, currentMusic?.id, isViewTransition]);
+    }, [music, setCurrentMusic, currentMusic?.id]);
 
     // Calculate slider value as a percentage of the current time
     const sliderValue = duration > 0 ? (currentTime / duration) * 100 : 0;
@@ -48,6 +40,17 @@ export function MobilePlayer() {
     // Handle slider change for seeking
     const handleSeek = (value: number[]) => {
         seekByPercentage(value[0]);
+    };
+
+    // Handle play/pause button click with error handling
+    const handlePlayPause = (e: React.MouseEvent) => {
+        e.stopPropagation();
+
+        try {
+            togglePlayPause();
+        } catch (error) {
+            console.error("Error toggling playback:", error);
+        }
     };
 
     return (
@@ -93,7 +96,7 @@ export function MobilePlayer() {
 
                 <Button
                     className="rounded-full p-5 bg-accent-foreground size-18"
-                    onClick={togglePlayPause}
+                    onClick={handlePlayPause} // Use the handler
                     disabled={isLoading && loadingProgress < 10} // Only disable at very beginning of loading
                 >
                     <motion.div layoutId="play-pause-button" className="relative">
