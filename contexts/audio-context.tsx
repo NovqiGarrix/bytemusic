@@ -15,6 +15,8 @@ interface AudioContextType {
     seek: (time: number) => void;
     seekByPercentage: (percentage: number) => void;
     switchTrack: (music: Music) => Promise<void>;
+    isNavigating: boolean;
+    setIsNavigating: (isNavigating: boolean) => void;
 }
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
@@ -27,6 +29,7 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
     const [duration, setDuration] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
     const [loadingProgress, setLoadingProgress] = useState(0);
+    const [isNavigating, setIsNavigating] = useState(false);
 
     // Flag to track user-initiated actions
     const userActionRef = useRef(false);
@@ -261,6 +264,8 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
                 seek,
                 seekByPercentage,
                 switchTrack,
+                isNavigating,
+                setIsNavigating
             }}
         >
             {children}

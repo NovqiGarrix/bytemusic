@@ -13,10 +13,12 @@ export function MusicForYou() {
         queryFn: () => getMusics()
     });
 
-    const { switchTrack } = useAudio();
+    const { switchTrack, setIsNavigating } = useAudio();
 
     async function handleOnClick(music: Music) {
         try {
+            setIsNavigating(true);
+
             // First switch track
             await switchTrack(music);
 
