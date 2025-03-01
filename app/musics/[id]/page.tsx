@@ -1,24 +1,38 @@
 "use client"
 
+import { getMusicById } from "@/api/music.api"
 import { MobilePlayer } from "@/components/mobile-player"
 import { MobileMusicThumbnail } from "@/components/MobileMusicThumbnail"
 import { useAudio } from "@/contexts/audio-context"
-import { ChevronDownIcon, EllipsisVerticalIcon } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useQuery } from "@tanstack/react-query"
+import { ChevronDownIcon, EllipsisVerticalIcon, Loader2 } from "lucide-react"
+import { useParams, useRouter } from "next/navigation"
 import { useEffect, useRef } from "react"
 
 export default function MusicDetailPage() {
-  const router = useRouter()
-  const { currentMusic, isPlaying, togglePlayPause } = useAudio()
+  const router = useRouter();
+  const { id } = useParams<{ id?: string }>();
+  const { currentMusic, isPlaying, togglePlayPause, switchTrack } = useAudio();
+
+  // Get music by ID (if it is not already loaded)
+  const { data: queriedMusic, isLoading: isGettingMusicFromParamsId } = useQuery({
+    queryKey: ["musics", currentMusic?.id],
+    queryFn: () => getMusicById(id!),
+    enabled: !currentMusic?.id && !!id,
+  });
+
+  // console.log(!currentMusic?.id && !!id);
 
   // Track whether we've initialized playback to prevent re-triggering
   const initialLoadRef = useRef(false)
 
   // Effect to handle initial load and redirect if no music
   useEffect(() => {
+    if (!isGettingMusicFromParamsId) return;
+
     // If no music, go back to home
-    if (!currentMusic) {
-      router.replace('/')
+    if (!currentMusic?.id) {
+      switchTrack(queriedMusic!);
       return
     }
 
@@ -32,14 +46,18 @@ export default function MusicDetailPage() {
         togglePlayPause()
       }
     }
-  }, [currentMusic, router, isPlaying, togglePlayPause])
+  }, [currentMusic?.id, router, isPlaying, togglePlayPause, isGettingMusicFromParamsId, queriedMusic, switchTrack]);
 
   const handleBackClick = (e: React.MouseEvent) => {
     e.preventDefault()
     router.back()
   }
 
-  if (!currentMusic) return null
+  if (!currentMusic && isGettingMusicFromParamsId) return (
+    <div className="bg-background h-screen flex flex-col ">
+      <Loader2 className="size-10 text-foreground animate-spin m-auto" />
+    </div>
+  );
 
   return (
     <div className="bg-background h-screen flex flex-col">
@@ -52,9 +70,7 @@ export default function MusicDetailPage() {
           <EllipsisVerticalIcon className="size-5 text-muted-foreground" />
         </div>
 
-        <div>
-          <MobileMusicThumbnail />
-        </div>
+        <MobileMusicThumbnail />
 
         <div>
           <MobilePlayer />

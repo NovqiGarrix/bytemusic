@@ -1,7 +1,7 @@
 "use client";
 
 import type { Music } from "@/api/music.api";
-import { createContext, useContext, useEffect, useRef, useState, ReactNode, useCallback } from "react";
+import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
 
 interface AudioContextType {
     currentMusic: Music | null;
@@ -151,7 +151,7 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
             audio.removeEventListener('canplay', onCanPlay);
             audio.removeEventListener('error', onError);
         };
-    }, []);
+    }, [togglePlayPause]);
 
     // Improved setCurrentMusic with reliable loading
     const setCurrentMusic = useCallback((music: Music | null) => {

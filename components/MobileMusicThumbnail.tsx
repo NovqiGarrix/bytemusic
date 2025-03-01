@@ -12,7 +12,7 @@ export function MobileMusicThumbnail() {
     return (
         <div className="flex-1 flex items-center justify-center px-8">
             <motion.div
-                className="w-full max-w-md aspect-square relative rounded-md overflow-hidden shadow-lg"
+                className="w-full max-w-md aspect-video relative rounded-md overflow-hidden shadow-lg"
                 layoutId={`thumbnail-${currentMusic.id}`}
             >
                 <Image

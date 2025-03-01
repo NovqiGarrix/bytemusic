@@ -2,7 +2,7 @@ import { useAudio } from "@/contexts/audio-context";
 import { useGetMusic } from "@/hooks/use-get-music";
 import { Loader2, PauseIcon, PlayIcon, RepeatIcon, ShuffleIcon, SkipBackIcon, SkipForwardIcon } from "lucide-react";
 import { motion } from "motion/react";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { Button } from "./ui/button";
 import { Slider } from "./ui/slider";
 
