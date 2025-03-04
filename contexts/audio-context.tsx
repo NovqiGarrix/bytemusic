@@ -119,9 +119,11 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
         if (!audio) return;
 
         // Focus only on essential events
-        const onEnded = () => {
+        const onEnded = async () => {
             setIsPlaying(false);
             setCurrentTime(0);
+            await audio.play();
+            setIsPlaying(true);
         };
 
         const onTimeUpdate = () => setCurrentTime(audio.currentTime);
