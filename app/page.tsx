@@ -5,6 +5,7 @@ import { HomePageMainSection } from "@/components/home-page-main-section"
 import { Sidebar } from "@/components/sidebar"
 import { useAudio } from "@/contexts/audio-context"
 import { Suspense } from "react"
+import { ProgressProvider } from '@bprogress/next/app';
 
 export default function Page() {
   const { currentMusic } = useAudio();

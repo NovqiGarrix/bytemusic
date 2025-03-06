@@ -2,6 +2,7 @@
 
 import type { Music } from "@/api/music.api";
 import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 interface AudioContextType {
     currentMusic: Music | null;
@@ -14,7 +15,7 @@ interface AudioContextType {
     togglePlayPause: () => void;
     seek: (time: number) => void;
     seekByPercentage: (percentage: number) => void;
-    switchTrack: (music: Music) => Promise<void>;
+    switchTrack: (music: Music) => void;
     isNavigating: boolean;
     setIsNavigating: (isNavigating: boolean) => void;
 }
@@ -129,7 +130,10 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
         const onTimeUpdate = () => setCurrentTime(audio.currentTime);
         const onDurationChange = () => setDuration(audio.duration);
         const onWaiting = () => setIsLoading(true);
-        const onCanPlay = () => setIsLoading(false);
+        const onCanPlay = () => {
+            setIsLoading(false);
+            audio.play();
+        }
         const onError = () => {
             console.error('Audio error');
             setIsPlaying(false);
@@ -190,7 +194,7 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
     }, []);
 
     // Improved switchTrack with better error handling
-    const switchTrack = useCallback(async (music: Music) => {
+    const switchTrack = useCallback((music: Music) => {
         const audio = audioRef.current;
         if (!audio) return;
 
@@ -206,30 +210,13 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
 
             // Set new track
             setCurrentMusic(music);
-
-            // Ensure the audio is fully loaded before playing
-            setIsLoading(true);
-
-            // Add a slight delay to ensure audio source is properly set
-            await new Promise(resolve => setTimeout(resolve, 100));
-
-            // Start playback with proper error handling
-            userActionRef.current = true;
-            const playPromise = audio.play();
-            pendingPlayRef.current = playPromise;
-
-            await playPromise;
-            // Only update state if this is still the active play request
-            if (pendingPlayRef.current === playPromise) {
-                setIsPlaying(true);
-                pendingPlayRef.current = null;
-            }
         } catch (error) {
             // Only handle error if this is still the active play request
             if (pendingPlayRef.current === null || error instanceof DOMException && error.name === "AbortError") {
                 console.log("Playback was aborted, likely due to a new track selection");
             } else {
                 console.error('Failed to play track:', error);
+                toast.error("Failed to play track");
                 setIsPlaying(false);
             }
             pendingPlayRef.current = null;

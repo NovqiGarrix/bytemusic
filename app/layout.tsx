@@ -1,7 +1,8 @@
+import BProgress from "@/components/BProgress";
 import { ClientRootLayout } from "@/components/client-root-layout";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { NuqsAdapter } from 'nuqs/adapters/next/app'
+import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { Toaster } from 'sonner';
 import "./globals.css";
 
@@ -28,12 +29,14 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={inter.className}>
-        <NuqsAdapter>
-          <Toaster />
-          <ClientRootLayout>
-            {children}
-          </ClientRootLayout>
-        </NuqsAdapter>
+        <BProgress>
+          <NuqsAdapter>
+            <Toaster />
+            <ClientRootLayout>
+              {children}
+            </ClientRootLayout>
+          </NuqsAdapter>
+        </BProgress>
       </body>
     </html>
   )

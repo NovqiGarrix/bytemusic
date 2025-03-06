@@ -38,7 +38,7 @@ export function UpNextTabContent() {
                         </Button>
                     </div>
 
-                    <div className="w-full mt-5">
+                    <div className="w-full mt-5 lg:max-h-120 overflow-auto">
                         {new Array(10).fill(0).map((_, index) => (
                             <Link key={index} href="/musics/1">
                                 <div className={cn("flex items-center justify-between py-2 px-3 border-b w-full", index === 0 ? "bg-muted-foreground/10 border-b-muted" : "border-b-muted/50")}>

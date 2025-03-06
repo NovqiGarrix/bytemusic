@@ -1,10 +1,10 @@
+import { Music } from "@/api/music.api";
 import { getMusics } from "@/api/musics.api";
+import { useAudio } from "@/contexts/audio-context";
+import { useRouter } from '@bprogress/next/app';
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Button } from "./ui/button";
 import { VideoCard } from "./video-card";
-import { Music } from "@/api/music.api";
-import { useAudio } from "@/contexts/audio-context";
-import { useRouter } from "next/navigation";
 
 export function MusicForYou() {
     const router = useRouter();
@@ -15,12 +15,12 @@ export function MusicForYou() {
 
     const { switchTrack, setIsNavigating } = useAudio();
 
-    async function handleOnClick(music: Music) {
+    function handleOnClick(music: Music) {
         try {
             setIsNavigating(true);
 
             // First switch track
-            await switchTrack(music);
+            switchTrack(music);
 
             // Only navigate after the track switch is successful or at least started
             router.push(`/musics/${music.id}`);
