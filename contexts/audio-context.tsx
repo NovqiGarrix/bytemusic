@@ -80,11 +80,16 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [currentMusic]);
 
+
+    const seek = useCallback((time: number) => {
+        const audio = audioRef.current;
+        if (!audio) return;
+        audio.currentTime = time;
+        setCurrentTime(time);
+    }, []);
+
     // Add keyboard controls for playback
     useEffect(() => {
-        // Only run on client side
-        if (typeof window === 'undefined') return;
-
         function handleKeyDown(e: KeyboardEvent) {
             // Skip if user is typing in an input field or textarea
             if (
@@ -103,6 +108,20 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
                 e.preventDefault(); // Prevent page scroll
                 togglePlayPause();
             }
+
+            // Right arrow to forward 10 seconds
+            if (e.code === 'ArrowRight' && currentMusic) {
+                e.preventDefault();
+                const newTime = Math.min(currentTime + 10, duration);
+                seek(newTime);
+            }
+
+            // Left arrow to rewind 10 seconds
+            if (e.code === 'ArrowLeft' && currentMusic) {
+                e.preventDefault();
+                const newTime = Math.max(currentTime - 10, 0);
+                seek(newTime);
+            }
         }
 
         // Add event listener
@@ -112,7 +131,7 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
         };
-    }, [togglePlayPause, currentMusic]);
+    }, [togglePlayPause, currentMusic, currentTime, duration, seek]);
 
     // Set up audio event listeners with careful handling
     useEffect(() => {
@@ -224,13 +243,6 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
             setIsLoading(false);
         }
     }, [setCurrentMusic]);
-
-    const seek = useCallback((time: number) => {
-        const audio = audioRef.current;
-        if (!audio) return;
-        audio.currentTime = time;
-        setCurrentTime(time);
-    }, []);
 
     const seekByPercentage = useCallback((percentage: number) => {
         const audio = audioRef.current;
