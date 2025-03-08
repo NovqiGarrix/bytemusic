@@ -1,6 +1,6 @@
 import { useQueryState } from "nuqs"
-import { ListenAgain } from "@/components/listen-again"
-import { MoodChips } from "@/components/mood-chips"
+// import { ListenAgain } from "@/components/listen-again"
+// import { MoodChips } from "@/components/mood-chips"
 import { MusicForYou } from "@/components/music-for-you"
 import { SearchResults } from "@/components/search-results"
 
@@ -15,8 +15,8 @@ export function HomePageMainSection() {
             ) : (
                 // Regular content when no search query
                 <>
-                    <MoodChips />
-                    <ListenAgain />
+                    {/* <MoodChips /> */}
+                    {/* <ListenAgain /> */}
                     <MusicForYou />
                 </>
             )}

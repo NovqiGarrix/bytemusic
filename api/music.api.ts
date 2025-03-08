@@ -12,6 +12,11 @@ export const musicSchema = z.object({
                 url: z.string().url(),
                 width: z.number(),
                 height: z.number(),
+            }).optional(),
+            high: z.object({
+                url: z.string().url(),
+                width: z.number(),
+                height: z.number(),
             })
         }),
         channelTitle: z.string()
@@ -21,7 +26,7 @@ export const musicSchema = z.object({
 
 export type Music = z.infer<typeof musicSchema>;
 
-const MUSIC_FIELD = 'id, snippet.title, snippet.thumbnails.standard, snippet.channelTitle, streamUri, contentDetails';
+export const MUSIC_FIELD = 'id, snippet.title, snippet.thumbnails.standard, snippet.thumbnails.high, snippet.channelTitle, streamUri, contentDetails';
 
 export async function getMusicById(id: string) {
 

@@ -5,7 +5,13 @@ import { ReactQueryStreamedHydration } from "@tanstack/react-query-next-experime
 import { ReactNode } from "react";
 
 function makeQueryClient() {
-    return new QueryClient({ /* ...opts */ });
+    return new QueryClient({
+        defaultOptions: {
+            queries: {
+                experimental_prefetchInRender: true
+            }
+        }
+    });
 }
 
 let clientQueryClient: QueryClient | undefined = undefined;

@@ -5,7 +5,6 @@ import { HomePageMainSection } from "@/components/home-page-main-section"
 import { Sidebar } from "@/components/sidebar"
 import { useAudio } from "@/contexts/audio-context"
 import { Suspense } from "react"
-import { ProgressProvider } from '@bprogress/next/app';
 
 export default function Page() {
   const { currentMusic } = useAudio();
@@ -18,23 +17,18 @@ export default function Page() {
         <Header />
       </Suspense>
 
-      <div className="grid lg:grid-cols-[280px_1fr] flex-1 overflow-hidden">
+      <div className="grid lg:grid-cols-[280px_1fr]">
         <Sidebar />
 
         {/* MAIN CONTENT */}
-        <div className="flex flex-col h-full overflow-hidden">
-          <main
-            className={`flex-1 overflow-y-auto ${hasMiniPlayer ? 'pb-16' : ''}`}
-          >
-            <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 pb-8">
-              <div className="py-6">
-                <Suspense>
-                  <HomePageMainSection />
-                </Suspense>
-              </div>
-            </div>
-          </main>
-        </div>
+        <main
+          className={`px-4 py-6 sm:px-6 lg:px-8 ${hasMiniPlayer ? 'pb-16' : 'pb-8'}`}
+          id="main-content"
+        >
+          <Suspense>
+            <HomePageMainSection />
+          </Suspense>
+        </main>
       </div>
     </div>
   )

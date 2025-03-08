@@ -1,18 +1,29 @@
 import { z } from 'zod';
 import { API_BASE_URL } from ".";
-import { musicSchema } from './music.api';
+import { MUSIC_FIELD, musicSchema } from './music.api';
 
 const BASE_URL = `${API_BASE_URL}/musics`;
 
-const musicsSchema = z.array(musicSchema);
+const musicsSchema = z.object({
+    data: z.array(musicSchema),
+    pagination: z.object({
+        totalItems: z.number(),
+        currentPage: z.number(),
+        nextPage: z.number().nullable(),
+        pageSize: z.number(),
+        totalPages: z.number()
+    })
+});
 
-export async function getMusics() {
+export type MusicsPagination = z.infer<typeof musicsSchema>["pagination"];
+
+export async function getMusics(page = 1) {
 
     try {
 
-        const resp = await fetch(BASE_URL);
+        const resp = await fetch(`${BASE_URL}?page=${page}&limit=20&fields=${MUSIC_FIELD}`);
 
-        const { data } = await resp.json();
+        const data = await resp.json();
 
         switch (resp.status) {
             case 200:
