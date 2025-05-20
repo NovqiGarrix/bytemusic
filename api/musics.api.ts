@@ -86,3 +86,34 @@ export async function searchVideos(q: string): Promise<SearchResponse> {
         throw error;
     }
 }
+
+export interface GetNextMusicsParams {
+    currentMusicId: string;
+    channelTitle: string;
+    page?: number;
+}
+
+export async function getNextMusics(params: GetNextMusicsParams) {
+    try {
+        const { currentMusicId, channelTitle, page = 1 } = params;
+
+        const urlInURL = new URL(`${BASE_URL}/next`);
+        urlInURL.searchParams.set('page', page.toString());
+        urlInURL.searchParams.set('limit', "20");
+        urlInURL.searchParams.set('fields', MUSIC_FIELD);
+        urlInURL.searchParams.set('currentId', currentMusicId);
+        urlInURL.searchParams.set('channelTitle', channelTitle);
+
+        const resp = await fetch(urlInURL);
+        const data = await resp.json();
+
+        switch (resp.status) {
+            case 200:
+                return musicsSchema.parse(data);
+            default:
+                throw new Error(data.error);
+        }
+    } catch (error) {
+        throw error;
+    }
+}

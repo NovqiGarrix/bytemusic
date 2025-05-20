@@ -1,23 +1,21 @@
 "use client"
 
 import { getMusicById } from "@/api/music.api"
+import { DesktopMusicPage } from "@/components/desktop-music-page"
 import { Header } from "@/components/header"
 import { MobilePlayer } from "@/components/mobile-player"
 import { MobileMusicThumbnail } from "@/components/MobileMusicThumbnail"
 import { Sidebar } from "@/components/sidebar"
 import { useAudio } from "@/contexts/audio-context"
 import { useQuery } from "@tanstack/react-query"
-import { ChevronDownIcon, EllipsisVerticalIcon, Loader2 } from "lucide-react"
+import { Loader2 } from "lucide-react"
 import { useParams, useRouter } from "next/navigation"
 import { Suspense, useEffect, useRef } from "react"
-import { motion } from "motion/react"
-import Image from "next/image"
-import { UpNextAndLyricsTab } from "@/components/up-next-and-lyric-tab"
 
 export default function MusicDetailPage() {
   const router = useRouter();
   const { id } = useParams<{ id?: string }>();
-  const { currentMusic, isPlaying, togglePlayPause, switchTrack } = useAudio();
+  const { currentMusic, isPlaying, togglePlayPause, switchTrack, setPlaylistId } = useAudio();
 
   // Get music by ID (if it is not already loaded)
   const { data: queriedMusic, isLoading: isGettingMusicFromParamsId } = useQuery({
@@ -31,10 +29,11 @@ export default function MusicDetailPage() {
 
   // Effect to handle initial load and redirect if no music
   useEffect(() => {
-    if (!isGettingMusicFromParamsId) return;
+    if (isGettingMusicFromParamsId) return;
 
     // If no music, go back to home
     if (!currentMusic?.id) {
+      setPlaylistId(queriedMusic?.id!);
       switchTrack(queriedMusic!);
       return;
     }
@@ -50,11 +49,6 @@ export default function MusicDetailPage() {
       }
     }
   }, [currentMusic?.id, router, isPlaying, togglePlayPause, isGettingMusicFromParamsId, queriedMusic, switchTrack]);
-
-  const handleBackClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    router.back();
-  };
 
   if (!currentMusic && isGettingMusicFromParamsId)
     return (
@@ -73,33 +67,11 @@ export default function MusicDetailPage() {
         <Sidebar />
 
         {/* MAIN CONTENT */}
-        <div className="flex h-full items-center justify-around overflow-hidden p-5">
-
-          <motion.div
-            className="w-full max-w-xl h-max aspect-video relative rounded-md shadow-lg"
-            layoutId={`thumbnail-${currentMusic?.id}`}
-          >
-            <Image
-              src={currentMusic?.snippet.thumbnails?.standard?.url || "/placeholder-image.jpg"}
-              alt={currentMusic?.snippet.title ?? "Music Thumbnail"}
-              fill
-              className="object-cover rounded-md"
-            />
-          </motion.div>
-
-          <UpNextAndLyricsTab />
-
-        </div>
+        <DesktopMusicPage music={currentMusic!} />
       </div>
 
-      <main className="h-full flex flex-col justify-between overflow-y-auto merah lg:hidden">
-        <div className="flex items-center justify-between px-6 py-5 lg:hidden">
-          <button onClick={handleBackClick} className="text-foreground">
-            <ChevronDownIcon className="size-6" />
-          </button>
-          <EllipsisVerticalIcon className="size-6 text-foreground" />
-        </div>
-        <div className="flex-1 flex flex-col lg:flex-row merah">
+      <main className="h-full flex flex-col justify-between overflow-y-auto lg:hidden">
+        <div className="flex-1 flex flex-col lg:flex-row">
           <div className="flex-1 flex items-center justify-center">
             <MobileMusicThumbnail />
           </div>

@@ -9,20 +9,20 @@ import { VideoCard } from "./video-card";
 
 export function MusicForYou() {
     const router = useRouter();
-    const { data: musics, fetchNextPage, hasNextPage, error } = useSuspenseInfiniteQuery({
+    const { data: musics, fetchNextPage, hasNextPage } = useSuspenseInfiniteQuery({
         queryKey: ['musics'],
         queryFn: ({ pageParam }) => getMusics(pageParam),
         getNextPageParam: (lastPage) => lastPage.pagination.nextPage,
         initialPageParam: 1,
     });
 
-    const { switchTrack, setIsNavigating } = useAudio();
+    const { switchTrack, setIsNavigating, setPlaylistId } = useAudio();
 
     function handleOnClick(music: Music) {
         try {
+            setPlaylistId(music.id);
             setIsNavigating(true);
             switchTrack(music);
-            router.push(`/musics/${music.id}`);
         } catch (error) {
             console.error("Error playing track:", error);
             router.push(`/musics/${music.id}`);

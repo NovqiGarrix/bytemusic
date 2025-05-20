@@ -79,3 +79,28 @@ export async function getMusicByVideoId(videoId: string) {
     }
 
 }
+
+export async function getNextTrack(currentTrackId: string) {
+
+    try {
+
+        const resp = await fetch(`${BASE_URL}/tracks/${currentTrackId}/next_track`);
+
+        const { data } = await resp.json();
+
+        switch (resp.status) {
+            case 200:
+                return musicSchema.parse(data);
+
+            case 404:
+                return null;
+
+            default:
+                throw new Error(data.error);
+        }
+
+    } catch (error) {
+        throw error;
+    }
+
+}

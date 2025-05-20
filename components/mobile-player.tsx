@@ -1,17 +1,11 @@
 import { useAudio } from "@/contexts/audio-context";
 import { useGetMusic } from "@/hooks/use-get-music";
+import { formatTime } from "@/lib/utils";
 import { Loader2, PauseIcon, PlayIcon, RepeatIcon, ShuffleIcon, SkipBackIcon, SkipForwardIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect } from "react";
 import { Button } from "./ui/button";
 import { Slider } from "./ui/slider";
-
-// Helper function to format time in MM:SS format
-const formatTime = (seconds: number): string => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-    return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
-};
 
 export function MobilePlayer() {
     const { data: music } = useGetMusic()!;
@@ -55,19 +49,6 @@ export function MobilePlayer() {
 
     return (
         <div className="px-6 py-5">
-            <motion.h1
-                className="text-2xl font-semibold"
-                layoutId={`title-${music?.id}`}
-            >
-                {music?.snippet.title}
-            </motion.h1>
-            <motion.h2
-                className="mt-1 text-muted-foreground"
-                layoutId={`artist-${music?.id}`}
-            >
-                {music?.snippet.channelTitle}
-            </motion.h2>
-
             {/* Slider */}
             <div className="mt-6 w-full">
                 <Slider
@@ -86,7 +67,7 @@ export function MobilePlayer() {
             </div>
 
             {/* Player actions */}
-            <div className="flex items-center justify-between mt-6">
+            <div className="flex items-center justify-between mt-6 lg:mt-3">
                 <Button variant="ghost" size="icon">
                     <ShuffleIcon className="size-6 stroke-1" />
                 </Button>
@@ -123,7 +104,7 @@ export function MobilePlayer() {
                 </Button>
             </div>
 
-            <div className="flex items-center justify-around mt-13">
+            <div className="flex items-center justify-around mt-13 lg:mt-8">
                 <Button variant="ghost" size="icon">
                     Up Next
                 </Button>

@@ -1,6 +1,8 @@
 "use client";
 
-import type { Music } from "@/api/music.api";
+import { getNextTrack, type Music } from "@/api/music.api";
+import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -18,6 +20,8 @@ interface AudioContextType {
     switchTrack: (music: Music) => void;
     isNavigating: boolean;
     setIsNavigating: (isNavigating: boolean) => void;
+    playlistId: string | null;
+    setPlaylistId: (playlistId: string | null) => void;
 }
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
@@ -31,6 +35,9 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [loadingProgress, setLoadingProgress] = useState(0);
     const [isNavigating, setIsNavigating] = useState(false);
+    const [playlistId, setPlaylistId] = useState<string | null>(null);
+
+    const router = useRouter();
 
     // Flag to track user-initiated actions
     const userActionRef = useRef(false);
@@ -38,6 +45,13 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
 
     // Track pending play attempts to avoid race conditions
     const pendingPlayRef = useRef<Promise<void> | null>(null);
+
+    // Get the next track
+    const { data: nextTrack } = useQuery({
+        queryKey: ['nextTrack', currentMusic?.id],
+        queryFn: async () => getNextTrack(currentMusic?.id!),
+        enabled: !!currentMusic?.id,
+    });
 
     // Initialize audio element only once
     useEffect(() => {
@@ -133,17 +147,119 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
         };
     }, [togglePlayPause, currentMusic, currentTime, duration, seek]);
 
+    // Improved setCurrentMusic with reliable loading
+    const setCurrentMusic = useCallback((music: Music | null) => {
+        const audio = audioRef.current;
+        if (!audio) return;
+
+        try {
+            // Reset states first
+            setIsPlaying(false);
+            setIsLoading(music !== null);
+            setLoadingProgress(0);
+            setCurrentTime(0);
+
+            // Cleanup current audio
+            audio.pause();
+            audio.currentTime = 0;
+
+            if (!music) {
+                setCurrentMusicState(null);
+                audio.src = '';
+                audio.load();
+                return;
+            }
+
+            // Update state and set new source
+            setCurrentMusicState(music);
+            audio.src = music.streamUri;
+            audio.load();
+        } catch (error) {
+            console.error('Error in setCurrentMusic:', error);
+            setIsLoading(false);
+            setIsPlaying(false);
+            toast.error("Failed to load audio");
+        }
+    }, []);
+
+    // Improved switchTrack with better error handling
+    const switchTrack = useCallback((music: Music) => {
+        const audio = audioRef.current;
+        if (!audio) return;
+
+        // Cancel any existing play attempts to avoid conflicts
+        if (pendingPlayRef.current) {
+            pendingPlayRef.current = null;
+        }
+
+        try {
+            // First pause any current playback
+            userActionRef.current = true;
+            audio.pause();
+
+            // Set new track
+            setCurrentMusic(music);
+            router.push(`/musics/${music.id}`);
+        } catch (error) {
+            // Only handle error if this is still the active play request
+            if (pendingPlayRef.current === null || error instanceof DOMException && error.name === "AbortError") {
+                console.log("Playback was aborted, likely due to a new track selection");
+            } else {
+                console.error('Failed to play track:', error);
+                toast.error("Failed to play track");
+                setIsPlaying(false);
+            }
+            pendingPlayRef.current = null;
+        } finally {
+            setIsLoading(false);
+        }
+    }, [setCurrentMusic]);
+
+    // Handle playing next track
+    const playNextTrack = useCallback(() => {
+        if (!nextTrack) return;
+
+        try {
+            const audio = audioRef.current;
+            if (!audio) return;
+
+            // Clean up current playback
+            audio.pause();
+            setIsPlaying(false);
+            setCurrentTime(0);
+
+            // Switch to next track
+            switchTrack(nextTrack);
+        } catch (error) {
+            console.error('Error in playNextTrack:', error);
+            toast.error("Failed to play next track");
+        }
+    }, [nextTrack, switchTrack]);
+
     // Set up audio event listeners with careful handling
     useEffect(() => {
         const audio = audioRef.current;
         if (!audio) return;
 
         // Focus only on essential events
-        const onEnded = async () => {
-            setIsPlaying(false);
-            setCurrentTime(0);
-            await audio.play();
-            setIsPlaying(true);
+        const onEnded = () => {
+            // It's good practice to get the current audio instance from the ref
+            // inside the event handler, though `audio` from useEffect's scope is likely fine.
+            const currentAudio = audioRef.current;
+            if (!currentAudio) return;
+
+            if (nextTrack) {
+                // switchTrack calls setCurrentMusic, which handles resetting isPlaying,
+                // currentTime, loading the new track. Then onCanPlay handles playing.
+                switchTrack(nextTrack);
+            } else {
+                // No next track, so update UI to reflect that playback has stopped.
+                setIsPlaying(false);
+                // Reset currentTime to 0 so if the user replays the current track (if possible via other controls)
+                // or if another action loads a track, it starts fresh.
+                currentAudio.currentTime = 0; // Directly affect the audio element
+                setCurrentTime(0);     // Update React state
+            }
         };
 
         const onTimeUpdate = () => setCurrentTime(audio.currentTime);
@@ -151,7 +267,16 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
         const onWaiting = () => setIsLoading(true);
         const onCanPlay = () => {
             setIsLoading(false);
-            audio.play();
+            audio.play().then(() => {
+                setIsPlaying(true);
+            }).catch((err) => {
+                // This error would throw if we force to play when the user
+                // just refresh the music page
+                // We can just ignore it, because its browser error
+                if (!err.message.startsWith("NotAllowedError")) {
+                    // TODO: Setup Sentry
+                }
+            });
         }
         const onError = () => {
             console.error('Audio error');
@@ -176,73 +301,7 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
             audio.removeEventListener('canplay', onCanPlay);
             audio.removeEventListener('error', onError);
         };
-    }, [togglePlayPause]);
-
-    // Improved setCurrentMusic with reliable loading
-    const setCurrentMusic = useCallback((music: Music | null) => {
-        const audio = audioRef.current;
-        if (!audio) return;
-
-        // Always pause first and reset state
-        userActionRef.current = true;
-        audio.pause();
-        setIsPlaying(false);
-
-        // Clear any pending play attempts
-        pendingPlayRef.current = null;
-
-        setIsLoading(music !== null);
-        setLoadingProgress(0);
-        setCurrentTime(0);
-
-        if (!music) {
-            setCurrentMusicState(null);
-            audio.src = '';
-            return;
-        }
-
-        try {
-            // Set new source and load
-            audio.src = music.streamUri;
-            audio.load();
-            setCurrentMusicState(music);
-        } catch (error) {
-            console.error('Error setting music source:', error);
-            setIsLoading(false);
-        }
-    }, []);
-
-    // Improved switchTrack with better error handling
-    const switchTrack = useCallback((music: Music) => {
-        const audio = audioRef.current;
-        if (!audio) return;
-
-        // Cancel any existing play attempts to avoid conflicts
-        if (pendingPlayRef.current) {
-            pendingPlayRef.current = null;
-        }
-
-        try {
-            // First pause any current playback
-            userActionRef.current = true;
-            audio.pause();
-
-            // Set new track
-            setCurrentMusic(music);
-        } catch (error) {
-            // Only handle error if this is still the active play request
-            if (pendingPlayRef.current === null || error instanceof DOMException && error.name === "AbortError") {
-                console.log("Playback was aborted, likely due to a new track selection");
-            } else {
-                console.error('Failed to play track:', error);
-                toast.error("Failed to play track");
-                setIsPlaying(false);
-            }
-            pendingPlayRef.current = null;
-        } finally {
-            setIsLoading(false);
-        }
-    }, [setCurrentMusic]);
+    }, [togglePlayPause, playNextTrack]);
 
     const seekByPercentage = useCallback((percentage: number) => {
         const audio = audioRef.current;
@@ -266,7 +325,9 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
                 seekByPercentage,
                 switchTrack,
                 isNavigating,
-                setIsNavigating
+                setIsNavigating,
+                playlistId,
+                setPlaylistId,
             }}
         >
             {children}
